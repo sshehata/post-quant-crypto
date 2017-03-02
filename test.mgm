@@ -1,0 +1,15 @@
+K := GF(2);
+
+ParseMatrix := function(string: R := K)
+    _, m, _ := Regexp("(([[](( )?[0-1]( )?)*[]])\n?)+", string);
+    matrix_seq := [StringToIntegerSequence(l[2..#l-1]) : l in Split(m)];
+    return Matrix(R, matrix_seq);
+end function;
+
+
+S := ParseMatrix(Read("s.txt"));
+S;
+
+G := ParseMatrix(Read("g.txt"));
+
+//G;

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeLite_Workspace Name="EscherEncryption" Database="">
+  <Project Name="EscherEncryption" Path="EscherEncryption.project" Active="Yes"/>
+  <Project Name="EscherSignatures" Path="../../Signature/EscherSignatures/EscherSignatures.project"/>
+  <BuildMatrix>
+    <WorkspaceConfiguration Name="Debug" Selected="no">
+      <Project Name="EscherEncryption" ConfigName="Debug"/>
+      <Project Name="EscherSignatures" ConfigName="Debug"/>
+    </WorkspaceConfiguration>
+    <WorkspaceConfiguration Name="Release" Selected="yes">
+      <Project Name="EscherEncryption" ConfigName="Release"/>
+      <Project Name="EscherSignatures" ConfigName="Release"/>
+    </WorkspaceConfiguration>
+  </BuildMatrix>
+</CodeLite_Workspace>
