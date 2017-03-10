@@ -12,7 +12,6 @@
 #include <time.h>
 #include <assert.h>
 
-
 size_t test_scheme();
 
 int main(int argc, char *argv[])

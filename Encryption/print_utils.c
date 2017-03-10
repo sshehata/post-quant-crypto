@@ -36,16 +36,17 @@ void print_integer_vector(FILE *fp, size_t n, unsigned int a[n])
 
 void print_parameters()
 {
-    size_t k = sum(NUMBER_OF_BLOCKS, B_k);
-    size_t n = k + sum(NUMBER_OF_BLOCKS, B_n);
-	printf("K = %zu\n", k);
-	printf("N = %zu\n", n);
-	printf("K_1 = %u\n", B_k[0]);
-    printf("N_w = %u\n", B_n[NUMBER_OF_BLOCKS - 1]);
-	printf("#Blocks = %zd\n", NUMBER_OF_BLOCKS);
-    if (SIGNATURE) { printf("LD_point = %zd\n", NUMBER_OF_BLOCKS - 1); }
+  size_t k = sum(NUMBER_OF_BLOCKS, B_k);
+  size_t n = k + sum(NUMBER_OF_BLOCKS, B_n);
+  printf("L = %zu\n", L);
+  printf("K = %zu\n", k);
+  printf("N = %zu\n", n);
+  printf("K_1 = %u\n", B_k[0]);
+  printf("N_w = %u\n", B_n[NUMBER_OF_BLOCKS - 1]);
+  printf("#Blocks = %zd\n", NUMBER_OF_BLOCKS);
+  if (SIGNATURE) { printf("LD_point = %zd\n", NUMBER_OF_BLOCKS - 1); }
 
-	printf("\n");
+  printf("\n");
 }
 
 void read_from_file(char * file, size_t rows, size_t columns, uint8_t a[columns][BYTES(rows)])

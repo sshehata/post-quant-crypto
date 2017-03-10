@@ -21,35 +21,46 @@ void key_gen(size_t k,
              size_t s,
              uint8_t S_inv[k][BYTES(k)],
              uint8_t G[n][BYTES(k)],
-             unsigned int inv_perm[n / 2],
-             uint8_t G_pub[n][BYTES(k)])
+             uint8_t P_inv[s][n][BYTES(n)],
+             uint8_t G_pub[s][n][BYTES(k)])
 {
     uint8_t S[k][BYTES(k)];
+    uint8_t p[s][n][BYTES(n)];
     uint8_t P[n][BYTES(n)];
-    uint8_t SG[n][BYTES(k)];
+    uint8_t SG[s][n][BYTES(k)];
+    uint8_t g[s][n][BYTES(k)];
+    uint8_t gs[n][BYTES(k)];
     unsigned int perm[n / 2];
 
     create_S(k, S);
     invert(k, S, S_inv);
 
+    create_P(n, P);
     create_G(k, n, G);
 
-    memset(G_pub, 0, n * BYTES(k));
-    memset(SG, 0, sizeof(SG));
-    matrix_multiply(k, k, n, S, G, SG);
+    // Compute G_1 ... G_s-1 
+    for (size_t i = 0; i < s-1; i++)
+      create_G(k, n, g[i];
 
-    random_permutation(n/2, perm);
+    // Compute G_s
+    matrix_add(k, n, G, g[0], g[s-1]);
+    for(size_t i = 1; i < s - 1; i++)
+      matrix_add(k, n, g[i], g[s-1], g[s-1]);
+
+    // Compute public key Gi
+    for (size_t i = 0; i < s; i++) {
+      memset(G_pub[i], 0, n * BYTES(k));
+      memset(SG[i], 0, sizeof(SG[i]));
+      matrix_multiply(k, k, n, S, g[i], SG[i]);
+      create_Pi_from_P(n, P, p[i])
+      matrix_multiply(k, n, n, SG[i], P[i], G_pub[i]);
+    }
+
     // Compute the inverse permutation
-    for (size_t i = 0; i < n / 2; i++) {
-        inv_perm[ perm[i] ] = i;
-    }
-
-    // Permute the columns of SG
-    for (size_t i = 0; i < n / 2; i++) {
-        memcpy(G_pub[2 * i], SG[2 * perm[i]], BYTES(k)); 
-        memcpy(G_pub[2 * i + 1], SG[2 * perm[i] + 1], BYTES(k)); 
-    }
+    for (size_t i = 0; i < s; i++)
+      invert(n, p[i], P_inv[i]);
 }
+      
 
 
 
@@ -81,15 +92,28 @@ static void create_G(size_t k, size_t n, uint8_t G[n][BYTES(k)])
 	}
 }
 
-static void create_P(size_t n, uint8_t P[n][BYTES(n)], unsigned int perm[n / 2])
+static void create_P(size_t n, uint8_t P[n][BYTES(n)])
 {
-    memset(P, 0, n * BYTES(n));
-    random_permutation(n / 2, perm);
+  unsigned int perm[n/L];
+  memset(P, 0, n * BYTES(n));
+  random_permutation(n / L, perm);
 
-    for (size_t i = 0; i < n / 2; i++) {
-        P[2 * i][(2 * perm[i]) / 8] = 1 << (7 - (2 * perm[i]) % 8);
-        P[2 * i + 1][(2 * perm[i] + 1) / 8] = 1 << (7 - (2 * perm[i] + 1) % 8);
-    }
+  for (size_t i = 0; i < n / L; i++) {
+    for (size_t j = 0; j < L; j++)
+      P[L * i + j][(L * perm[i] + j) / 8] = 1 << (7 - (L * perm[i] + j) % 8);
+  }
+
+}
+
+static void create_Pi_from_P(size_t n, uint8_t P[n][BYTES(n)], uint8_t Pi[n][BYTES(n)])
+{
+  unsigned int perm[L];
+  memset(Pi, 0, n * BYTES(n));
+  random_permutation(n / L, perm);
+  for (size_t i = 0; i < n / L; i++) {
+    random_permutation(L, perm);
+    permute_columns(n, n, P, L, perm, i * L, Pi);
+  }
 }
 
 
