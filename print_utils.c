@@ -29,6 +29,7 @@ void print_parameters()
 {
   size_t k = sum(NUMBER_OF_BLOCKS, B_k);
   size_t n = k + sum(NUMBER_OF_BLOCKS, B_n);
+  printf("L = %zu\n", L);
   printf("K = %zu\n", k);
   printf("N = %zu\n", n);
   printf("K_1 = %u\n", B_k[0]);

@@ -63,4 +63,6 @@ const unsigned int B_n[] = { 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32,
 const size_t NUMBER_OF_BLOCKS_K = ARRAY_SIZE(B_k);
 const size_t NUMBER_OF_BLOCKS_N = ARRAY_SIZE(B_n);
 const size_t NUMBER_OF_BLOCKS = ARRAY_SIZE(B_k);
+const size_t L = 2;
+const size_t s = 4;
 

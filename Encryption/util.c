@@ -18,6 +18,15 @@ static void get_row(size_t k, size_t n, uint8_t a[n][BYTES(k)], size_t row, uint
 uint8_t and(uint8_t a, uint8_t b) { return a & b; }
 uint8_t xor(uint8_t a, uint8_t b) { return a ^ b; }
 
+void vector_add(size_t length,
+                uint8_t a[length],
+                uint8_t b[length],
+                uint8_t c[length])
+{
+  for (size_t i = 0; i < length; i++)
+    c[i] = a[i] ^ b[i];
+}
+
 void matrix_add(size_t c,
                 size_t r,
                 uint8_t a[r][BYTES(c)],

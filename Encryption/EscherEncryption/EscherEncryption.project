@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<CodeLite_Project Name="EscherEncryption" InternalType="Console">
+<CodeLite_Project Name="EscherEncryption" InternalType="Console" Version="10.0.0">
   <Plugins>
     <Plugin Name="qmake">
       <![CDATA[00020001N0005Debug0000000000000001N0007Release000000000000]]>
@@ -41,6 +41,9 @@
     <File Name="../types.h"/>
     <File Name="../util.c"/>
     <File Name="../util.h"/>
+    <File Name="../reference_s.c"/>
+    <File Name="../reference_s.h"/>
+    <File Name="../test.c"/>
   </VirtualDirectory>
   <Settings Type="Executable">
     <GlobalSettings>

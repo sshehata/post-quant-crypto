@@ -14,7 +14,8 @@
 
 static void create_S(size_t k, uint8_t S[k][BYTES(k)]);
 static void create_G(size_t k, size_t n, uint8_t G[n][BYTES(k)]);
-static void create_P(size_t n, uint8_t P[n][BYTES(n)], unsigned int perm[n / 2]);
+static void create_P(size_t n, uint8_t P[n][BYTES(n)]);
+static void create_Pi_from_P(size_t n, uint8_t P[n][BYTES(n)], uint8_t Pi[n][BYTES(n)]);
 
 void key_gen(size_t k,
              size_t n,
@@ -40,7 +41,7 @@ void key_gen(size_t k,
 
     // Compute G_1 ... G_s-1 
     for (size_t i = 0; i < s-1; i++)
-      create_G(k, n, g[i];
+      create_G(k, n, g[i]);
 
     // Compute G_s
     matrix_add(k, n, G, g[0], g[s-1]);
@@ -52,15 +53,14 @@ void key_gen(size_t k,
       memset(G_pub[i], 0, n * BYTES(k));
       memset(SG[i], 0, sizeof(SG[i]));
       matrix_multiply(k, k, n, S, g[i], SG[i]);
-      create_Pi_from_P(n, P, p[i])
-      matrix_multiply(k, n, n, SG[i], P[i], G_pub[i]);
+      create_Pi_from_P(n, P, p[i]);
+      matrix_multiply(k, n, n, SG[i], p[i], G_pub[i]);
     }
 
     // Compute the inverse permutation
     for (size_t i = 0; i < s; i++)
       invert(n, p[i], P_inv[i]);
 }
-      
 
 
 
@@ -119,44 +119,29 @@ static void create_Pi_from_P(size_t n, uint8_t P[n][BYTES(n)], uint8_t Pi[n][BYT
 
 /* ---------------- Encryption/decryption functions ---------- */
 
-void encrypt(size_t k, size_t n, uint8_t G_pub[n][BYTES(k)], uint8_t m[BYTES(k)], uint8_t e[BYTES(n)], uint8_t c[BYTES(n)])
+//TODO: Fix error vector input
+void encrypt(size_t k, size_t n, size_t s, uint8_t G_pub[s][n][BYTES(k)], uint8_t m[BYTES(k)], uint8_t e[BYTES(n)], uint8_t c[s][BYTES(n)])
 {
     memset(c, 0, BYTES(n));
-    vector_matrix_mult(k, n, m, G_pub, c);
-    BytewiseOperation(xor, n, 0, n, c, e, c);
+    for (size_t i = 0; i < s; i++) {
+      vector_matrix_mult(k, n, m, G_pub[i], c[i]);
+      BytewiseOperation(xor, n, 0, n, c[i], e, c[i]);    // TODO: fix error vector application
+    }
 }
 
-void decrypt(size_t k, size_t n, uint8_t S_inv[k][BYTES(k)], uint8_t G[n][BYTES(k)], unsigned int inv_perm[n / 2], uint8_t z[BYTES(n)], List *decrypted)
+void decrypt(size_t k, size_t n, size_t s, uint8_t S_inv[k][BYTES(k)], uint8_t G[n][BYTES(k)], uint8_t P_inv[s][n][BYTES(n)], uint8_t z[BYTES(n)], List *decrypted)
 {
   uint8_t m[BYTES(k)];
   uint8_t y[BYTES(n)];
-  uint8_t ztemp[n], ytemp[n];
+  uint8_t c_prime[s][BYTES(n)];
   List L;
   list_init(&L, k);
 
-  // inverse permute the ciphertext z to obtain y
-  size_t j = 0;
-  for (size_t i = 0; i < BYTES(n); i++) {
-    ztemp[j++] = get_bit(z[i], 0);
-    ztemp[j++] = get_bit(z[i], 1);
-    ztemp[j++] = get_bit(z[i], 2);
-    ztemp[j++] = get_bit(z[i], 3);
-    ztemp[j++] = get_bit(z[i], 4);
-    ztemp[j++] = get_bit(z[i], 5);
-    ztemp[j++] = get_bit(z[i], 6);
-    ztemp[j++] = get_bit(z[i], 7);
-  }
+  memset(y, 0, BYTES(n));
 
-  for (size_t i = 0; i < n / 2; i++) {
-    ytemp[2 * i] = ztemp[2 * inv_perm[i]];
-    ytemp[2 * i + 1] = ztemp[2 * inv_perm[i] + 1];
-  }
-
-  for (size_t i = 0; i < BYTES(n); i++) {
-    y[i] = (ytemp[8*i])<<7     | (ytemp[8*i + 1])<<6 \
-           | (ytemp[8*i + 2])<<5 | (ytemp[8*i + 3])<<4 \
-           | (ytemp[8*i + 4])<<3 | (ytemp[8*i + 5])<<2 \
-           | (ytemp[8*i + 6])<<1 | (ytemp[8*i + 7]);
+  for (size_t i = 0; i < s; i++) {
+      vector_matrix_mult(n, n, z, P_inv[i], c_prime[i]);
+      vector_add(BYTES(n), c_prime[i], y, y);
   }
 
   decode(k, n, G, y, &L);
