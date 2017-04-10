@@ -25,14 +25,14 @@ void key_gen(size_t k,
              uint8_t P_inv[s][n][BYTES(n)],
              uint8_t G_pub[s][n][BYTES(k)])
 {
-    uint8_t S[k][BYTES(k)];
-    uint8_t p[s][n][BYTES(n)];
+    
+    uint8_t S[k][BYTES(k)]; 
+    uint8_t p[s][n][BYTES(n)]; printf("here...\n");
     uint8_t P[n][BYTES(n)];
     uint8_t SG[s][n][BYTES(k)];
     uint8_t g[s][n][BYTES(k)];
-    uint8_t gs[n][BYTES(k)];
-    unsigned int perm[n / 2];
 
+    
     create_S(k, S);
     invert(k, S, S_inv);
 
@@ -40,18 +40,18 @@ void key_gen(size_t k,
     create_G(k, n, G);
 
     // Compute G_1 ... G_s-1 
+    memset(g, 0, s * n * BYTES(k));
     for (size_t i = 0; i < s-1; i++)
-      create_G(k, n, g[i]);
+      random_matrix(k, n, g[i]);
 
     // Compute G_s
-    matrix_add(k, n, G, g[0], g[s-1]);
-    for(size_t i = 1; i < s - 1; i++)
+    for(size_t i = 0; i < s - 1; i++)
       matrix_add(k, n, g[i], g[s-1], g[s-1]);
-
+    
     // Compute public key Gi
+    memset(G_pub, 0, s* n * BYTES(k));
+    memset(SG, 0, s * n * BYTES(k));
     for (size_t i = 0; i < s; i++) {
-      memset(G_pub[i], 0, n * BYTES(k));
-      memset(SG[i], 0, sizeof(SG[i]));
       matrix_multiply(k, k, n, S, g[i], SG[i]);
       create_Pi_from_P(n, P, p[i]);
       matrix_multiply(k, n, n, SG[i], p[i], G_pub[i]);
@@ -59,7 +59,7 @@ void key_gen(size_t k,
 
     // Compute the inverse permutation
     for (size_t i = 0; i < s; i++)
-      invert(n, p[i], P_inv[i]);
+      invert_permutation_matrix(n, p[i], P_inv[i]);
 }
 
 
@@ -108,11 +108,11 @@ static void create_P(size_t n, uint8_t P[n][BYTES(n)])
 static void create_Pi_from_P(size_t n, uint8_t P[n][BYTES(n)], uint8_t Pi[n][BYTES(n)])
 {
   unsigned int perm[L];
-  memset(Pi, 0, n * BYTES(n));
-  random_permutation(n / L, perm);
+  memcpy(Pi, P, n*BYTES(n));
   for (size_t i = 0; i < n / L; i++) {
-    random_permutation(L, perm);
-    permute_columns(n, n, P, L, perm, i * L, Pi);
+    memset(perm, 0, L);
+    random_permutation(L, perm); 
+    permute_columns(n, n, Pi, L, perm, i * L);
   }
 }
 
@@ -120,16 +120,16 @@ static void create_Pi_from_P(size_t n, uint8_t P[n][BYTES(n)], uint8_t Pi[n][BYT
 /* ---------------- Encryption/decryption functions ---------- */
 
 //TODO: Fix error vector input
-void encrypt(size_t k, size_t n, size_t s, uint8_t G_pub[s][n][BYTES(k)], uint8_t m[BYTES(k)], uint8_t e[BYTES(n)], uint8_t c[s][BYTES(n)])
+void encrypt(size_t k, size_t n, size_t s, uint8_t G_pub[s][n][BYTES(k)], uint8_t m[BYTES(k)], uint8_t e[s][BYTES(n)], uint8_t c[s][BYTES(n)])
 {
-    memset(c, 0, BYTES(n));
+    memset(c, 0, s*BYTES(n));
     for (size_t i = 0; i < s; i++) {
       vector_matrix_mult(k, n, m, G_pub[i], c[i]);
-      BytewiseOperation(xor, n, 0, n, c[i], e, c[i]);    // TODO: fix error vector application
+      BytewiseOperation(xor, n, 0, n, c[i], e[i], c[i]);    // TODO: fix error vector application
     }
 }
 
-void decrypt(size_t k, size_t n, size_t s, uint8_t S_inv[k][BYTES(k)], uint8_t G[n][BYTES(k)], uint8_t P_inv[s][n][BYTES(n)], uint8_t z[BYTES(n)], List *decrypted)
+void decrypt(size_t k, size_t n, size_t s, uint8_t S_inv[k][BYTES(k)], uint8_t G[n][BYTES(k)], uint8_t P_inv[s][n][BYTES(n)], uint8_t z[s][BYTES(n)], List *decrypted)
 {
   uint8_t m[BYTES(k)];
   uint8_t y[BYTES(n)];
@@ -137,11 +137,12 @@ void decrypt(size_t k, size_t n, size_t s, uint8_t S_inv[k][BYTES(k)], uint8_t G
   List L;
   list_init(&L, k);
 
+  memset(c_prime, 0, s*BYTES(n));
   memset(y, 0, BYTES(n));
 
   for (size_t i = 0; i < s; i++) {
-      vector_matrix_mult(n, n, z, P_inv[i], c_prime[i]);
-      vector_add(BYTES(n), c_prime[i], y, y);
+      vector_matrix_mult(n, n, z[i], P_inv[i], c_prime[i]);
+      BytewiseOperation(xor, n, 0, n, c_prime[i], y, y);
   }
 
   decode(k, n, G, y, &L);
@@ -357,7 +358,7 @@ static void sign_decode(size_t k, size_t n, uint8_t G[n][BYTES(k)], uint8_t y[BY
     while (!valid_cand) {
 		size_t Ki = B_k[0];
         memset(x, 0, BYTES(k));
-        random_error(0, Ki, e0);
+        //random_error(0, Ki, e0);
         BytewiseOperation(xor, k, 0, Ki, y0, e0, x);
 
         if (valid_candidate(k, n, G, y, x, 0)) {

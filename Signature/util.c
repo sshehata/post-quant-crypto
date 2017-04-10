@@ -18,6 +18,39 @@ static void get_row(size_t k, size_t n, uint8_t a[n][BYTES(k)], size_t row, uint
 uint8_t and(uint8_t a, uint8_t b) { return a & b; }
 uint8_t xor(uint8_t a, uint8_t b) { return a ^ b; }
 
+void vector_add(size_t length,
+                uint8_t a[length],
+                uint8_t b[length],
+                uint8_t c[length])
+{
+  for (size_t i = 0; i < length; i++)
+    c[i] = a[i] ^ b[i];
+}
+
+void matrix_add(size_t c,
+                size_t r,
+                uint8_t a[r][BYTES(c)],
+                uint8_t b[r][BYTES(c)],
+                uint8_t output[r][BYTES(c)])
+{
+  for (size_t i = 0; i < r; i++)
+    for (size_t j = 0; j < c; j++)
+      output[i][j] = a[i][j] ^ b[i][j];
+
+}
+
+void permute_columns(size_t c,
+                     size_t r,
+                     uint8_t matrix[r][BYTES(c)],
+                     size_t perm_size,
+                     unsigned int perm[perm_size],
+                     size_t base,
+                     uint8_t output_matrix[r][BYTES(c)]) {
+
+    for (size_t i = base; i < base + perm_size; i++)
+        memcpy(matrix[i], output_matrix[perm[i - base] + base], BYTES(c));
+}
+
 uint8_t get_bit(uint8_t a, size_t i)
 {
 	return (a >> (7 - (i % 8))) & 1;

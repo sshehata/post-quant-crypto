@@ -1,4 +1,5 @@
 #include "util.h"
+#include "params.h"
 
 #include <stdlib.h>
 #include <inttypes.h>
@@ -27,28 +28,26 @@ void vector_add(size_t length,
     c[i] = a[i] ^ b[i];
 }
 
-void matrix_add(size_t c,
-                size_t r,
-                uint8_t a[r][BYTES(c)],
-                uint8_t b[r][BYTES(c)],
-                uint8_t output[r][BYTES(c)])
+void matrix_add(size_t rows,
+                size_t cols,
+                uint8_t a[cols][BYTES(rows)],
+                uint8_t b[cols][BYTES(rows)],
+                uint8_t output[cols][BYTES(rows)])
 {
-  for (size_t i = 0; i < r; i++)
-    for (size_t j = 0; j < c; j++)
-      output[i][j] = a[i][j] ^ b[i][j];
+  for (size_t i = 0; i < cols; i++)
+    BytewiseOperation(xor, rows, 0, rows, a[i], b[i], output[i]);
 
 }
 
-void permute_columns(size_t c,
-                     size_t r,
-                     uint8_t matrix[r][BYTES(c)],
+void permute_columns(size_t rows,
+                     size_t cols,
+                     uint8_t matrix[cols][BYTES(rows)],
                      size_t perm_size,
                      unsigned int perm[perm_size],
-                     size_t base,
-                     uint8_t output_matrix[r][BYTES(c)]) {
+                     size_t start) {
 
-    for (size_t i = base; i < base + perm_size; i++)
-        memcpy(matrix[i], output_matrix[perm[i - base] + base], BYTES(c));
+    for (size_t i = start; i < start + perm_size; i++)
+        swap_columns(rows, cols, matrix, i, perm[i-start]);
 }
 
 bool in_array(uint8_t value, size_t size, uint8_t arr[size]) {
@@ -124,6 +123,30 @@ void random_vector(size_t k, uint8_t v[BYTES(k)])
 		random[i] = randr(0,255);
 	}
 	BytewiseOperation(xor, k, 0, k, v, random, v);  
+}  
+
+const uint8_t* random_split() {
+    size_t split = randr(0, N_ERROR_SPLITS);
+    return VALID_ERROR_SPLITS[split];
+}  
+
+// assumption: l < 8
+void random_error_split(size_t s,
+                        size_t l,
+                        size_t n,
+                        uint8_t e[s][BYTES(n)])
+{
+    memset(e, 0, s*BYTES(n));
+    const uint8_t* split = NULL;
+    
+	for(size_t i = 0; i < n; i++)
+        if (i % l == 0) {
+            split = random_split();
+
+        for (size_t j = 0; j < s; j++) {
+            e[j][i / 8] ^= ((split[0] >> (i % l)) & 0x1) << (7 - i % 8);
+        }
+    }
 }
 
 void random_error(size_t start, size_t len, uint8_t e[BYTES(len)])
@@ -332,6 +355,7 @@ static void add_pivot(size_t dim, uint8_t a[dim][BYTES(dim)], size_t pivot_row, 
  */
 unsigned int invert(size_t dim, uint8_t a[dim][BYTES(dim)], uint8_t b[dim][BYTES(dim)])
 {	
+   
 	memset(b, 0, BYTES(dim) * dim);
 	uint8_t a_tmp[dim][BYTES(dim)];
 	memcpy(a_tmp, a, BYTES(dim) * dim + 1);
@@ -370,4 +394,11 @@ unsigned int invert(size_t dim, uint8_t a[dim][BYTES(dim)], uint8_t b[dim][BYTES
     }
 	
 	return rank;
+}
+
+void invert_permutation_matrix(size_t dim,
+                               uint8_t a[dim][BYTES(dim)], 
+                               uint8_t b[dim][BYTES(dim)]) {
+    memset(b, 0, BYTES(dim) * dim);
+    transpose(dim, dim, a, b);
 }

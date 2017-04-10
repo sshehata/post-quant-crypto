@@ -5,9 +5,11 @@
 #include <time.h>
 #include <stdlib.h>
 #include "print_utils.h"
+#include "reference_s.h"
 
+size_t test_scheme();
 
-int main(int argc, char *argv) {
+int main(int argc, char *argv[]) {
   assert(NUMBER_OF_BLOCKS_K == NUMBER_OF_BLOCKS_N);
 
   srand(time(NULL));
@@ -24,15 +26,18 @@ size_t test_scheme()
   size_t n = k + sum(NUMBER_OF_BLOCKS, B_n);
 
   uint8_t S_inv[k][BYTES(k)];
-  uint8_t P_inv[S][k][BYTES(k)];
+  uint8_t P_inv[S][n][BYTES(n)];
   uint8_t G[n][BYTES(k)];
   uint8_t G_pub[S][n][BYTES(k)];
+  
+  uint8_t m[BYTES(k)];
+  uint8_t e[S][BYTES(n)], z[S][BYTES(n)];
 
   FILE *fp_out_S_inv = fopen("S_inv.txt", "w");
   FILE *fp_out_G     = fopen("G.txt", "w");
   FILE *fp_out_P_inv = fopen("P_inv.txt", "w");
   FILE *fp_out_G_pub = fopen("G_pub.txt", "w");
-
+   
   key_gen(k, n, S, S_inv, G, P_inv, G_pub);
 
   print_matrix(fp_out_S_inv, k, k, S_inv); fclose(fp_out_S_inv);
@@ -43,4 +48,34 @@ size_t test_scheme()
   }
   fclose(fp_out_P_inv);
   fclose(fp_out_G_pub);
+ 
+  List decrypt_list;
+  list_init(&decrypt_list, k);
+  
+ 
+  random_vector(k, m);
+  random_error_split(S, L, n, e);
+  
+  FILE *fp_out_S    = fopen("S.txt", "w");
+  print_vector(fp_out_S, n, e[0]); fclose(fp_out_S);
+  
+  // Encryption: m |- S -> x |- G -> y |- P -> z -> z + e
+  encrypt(k, n, S, G_pub, m, e, z);
+
+  // Decryption: z + e |- P^-1 -> y + e' |- Decode -> {x1, x2, ...} |- S^-1 -> m
+  decrypt(k, n, S, S_inv, G, P_inv, z, &decrypt_list);
+  
+  printf("decrypt %u", decrypt_list.size);
+
+  printf("\n");
+  for (size_t i = 0; i < decrypt_list.size; i++) {
+    uint8_t (*mp)[BYTES(k)] = list_get(&decrypt_list, i);
+    if (equals(k, m, *mp)) {
+      printf("Message successfully decrypted!\n");
+    }
+  }
+
+  list_free(&decrypt_list);
+
+  return decrypt_list.size;
 }

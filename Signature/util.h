@@ -32,6 +32,11 @@ void permute(size_t k, unsigned int a[k]);
 size_t sum(size_t k, const unsigned int a[k]);
 size_t min(unsigned int a, unsigned int b);
 
+bool in_array(uint8_t value, size_t size, uint8_t arr[size]);
+void permute_columns(size_t c, size_t r, uint8_t matrix[r][BYTES(c)], size_t perm_size, unsigned int perm[perm_size], size_t base, uint8_t output_matrix[r][BYTES(c)]);
+void matrix_add(size_t c, size_t r, uint8_t a[r][BYTES(c)], uint8_t b[r][BYTES(c)], uint8_t output[r][BYTES(c)]);
+void vector_add(size_t length, uint8_t a[length], uint8_t b[length], uint8_t c[length]);
+
 #endif
 
 
