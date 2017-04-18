@@ -126,7 +126,7 @@ void random_vector(size_t k, uint8_t v[BYTES(k)])
 }  
 
 const uint8_t* random_split() {
-    size_t split = randr(0, N_ERROR_SPLITS);
+    size_t split = randr(0, N_ERROR_SPLITS - 1);
     return VALID_ERROR_SPLITS[split];
 }  
 
@@ -134,17 +134,19 @@ const uint8_t* random_split() {
 void random_error_split(size_t s,
                         size_t l,
                         size_t n,
-                        uint8_t e[s][BYTES(n)])
+                        uint8_t e2[s][BYTES(n)])
 {
+    uint8_t e[s][BYTES(n)];
     memset(e, 0, s*BYTES(n));
     const uint8_t* split = NULL;
     
-	for(size_t i = 0; i < n; i++)
-        if (i % l == 0) {
+	for(size_t i = 0; i < n; i++) {
+        if (i % l == 0)
             split = random_split();
 
         for (size_t j = 0; j < s; j++) {
-            e[j][i / 8] ^= ((split[0] >> (i % l)) & 0x1) << (7 - i % 8);
+            printf("%zu \n",  ((split[j] >> (i % l)) & 0x1) << (7 - i % 8));
+            e[j][i / 8] ^= ((split[j] >> (i % l)) & 0x1) << (7 - i % 8);
         }
     }
 }

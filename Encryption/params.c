@@ -43,8 +43,13 @@ const unsigned int B_n[] = { 24, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20,
 
 */
 
-const unsigned int B_k[] = {152, 14, 14, 14, 32};
-const unsigned int B_n[] = {32, 14, 14, 14, 152};
+// Interesen balans pomegju brzina i dolzhina i security
+// Security level 2^??
+// w 32
+//                           01  02  03  04  05  06  07  08  09  10  11  12  13  14  15  16  17  18  19  20  21  22  23  24  25  26  27  28  29  30  31  32
+const unsigned int B_k[] = { 16,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8};
+const unsigned int B_n[] = { 16, 32, 30, 32, 30, 32, 30, 32, 30, 32, 30, 32, 30, 32, 30, 32, 30, 32, 30, 32, 30, 32, 30, 32, 30, 32, 30, 32, 30, 32, 30, 70};
+
 
 
 
@@ -98,7 +103,7 @@ const size_t NUMBER_OF_BLOCKS_N = ARRAY_SIZE(B_n);
 const size_t NUMBER_OF_BLOCKS = ARRAY_SIZE(B_k);
 const size_t L = 4;
 const size_t S = 2;
-const size_t N_ERROR_SPLITS = 8;
+const size_t N_ERROR_SPLITS = 40;
 const uint8_t VALID_ERROR_SPLITS[][2] = {{ 0x0, 0x1 }, { 0x0, 0x2 }, { 0x0, 0x3 }, { 0x0, 0x4 },
                                          { 0x0, 0x5 }, { 0x0, 0x6 }, { 0x0, 0x8 }, { 0x0, 0x9 },
                                          { 0x0, 0xA }, { 0x0, 0xc }, { 0x1, 0x0 }, { 0x2, 0x0 },
