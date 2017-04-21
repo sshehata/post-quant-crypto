@@ -45,6 +45,7 @@ void key_gen(size_t k,
       random_matrix(k, n, g[i]);
 
     // Compute G_s
+    matrix_add(k, n, G, g[s-1], g[s-1]);
     for(size_t i = 0; i < s - 1; i++)
       matrix_add(k, n, g[i], g[s-1], g[s-1]);
     
@@ -139,12 +140,19 @@ void decrypt(size_t k, size_t n, size_t s, uint8_t S_inv[k][BYTES(k)], uint8_t G
 
   memset(c_prime, 0, s*BYTES(n));
   memset(y, 0, BYTES(n));
-
+  FILE *fp_out_S    = fopen("S.txt", "w");
+  
+  
   for (size_t i = 0; i < s; i++) {
       vector_matrix_mult(n, n, z[i], P_inv[i], c_prime[i]);
       BytewiseOperation(xor, n, 0, n, c_prime[i], y, y);
   }
-
+   fprintf(fp_out_S, "c0 \n");
+  print_vector(fp_out_S, n, c_prime[0]);
+  fprintf(fp_out_S, "c1 \n");
+  print_vector(fp_out_S, n, c_prime[1]);
+  fprintf(fp_out_S, "y \n");
+  print_vector(fp_out_S, n, y);
   decode(k, n, G, y, &L);
 
   for (size_t i = 0; i < L.size; i++) {
@@ -239,15 +247,16 @@ static bool valid_candidate(size_t k, size_t n, uint8_t G[n][BYTES(k)], uint8_t 
 	uint8_t cand_encoding[BYTES(n)];
     memset(cand_encoding, 0, sizeof(cand_encoding));
 	size_t block_start_column = k + sum(block, B_n);
+    uint8_t mask = 0xff >> (8-L);
 
-	for (size_t i = block_start_column; i < block_start_column + B_n[block]; i += 2) {
+	for (size_t i = block_start_column; i < block_start_column + B_n[block]; i += L) {
+    
+        for (size_t j = 0; j < L; j++)
+            cand_encoding[(i+j) / 8] ^= (scalar_prod(k, n, i+j, cand, G) << (7 - (i+j) % 8));
 
-		cand_encoding[i / 8] ^= (scalar_prod(k, n, i, cand, G) << (7 - i % 8));
-		cand_encoding[(i+1) / 8] ^= (scalar_prod(k, n, i+1, cand, G) << (7 - (i+1) % 8));
+		uint8_t slice = ((cand_encoding[i / 8] ^ y[i / 8]) >> (6 - i % 8)) & mask;
 
-		uint8_t slice = ((cand_encoding[i / 8] ^ y[i / 8]) >> (6 - i % 8)) & 0x3;
-
-		if (slice == 0x3) {
+		if (slice == mask) {
 			return false;
 		}
 	}

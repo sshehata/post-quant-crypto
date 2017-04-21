@@ -134,9 +134,8 @@ const uint8_t* random_split() {
 void random_error_split(size_t s,
                         size_t l,
                         size_t n,
-                        uint8_t e2[s][BYTES(n)])
+                        uint8_t e[s][BYTES(n)])
 {
-    uint8_t e[s][BYTES(n)];
     memset(e, 0, s*BYTES(n));
     const uint8_t* split = NULL;
     
@@ -145,8 +144,7 @@ void random_error_split(size_t s,
             split = random_split();
 
         for (size_t j = 0; j < s; j++) {
-            printf("%zu \n",  ((split[j] >> (i % l)) & 0x1) << (7 - i % 8));
-            e[j][i / 8] ^= ((split[j] >> (i % l)) & 0x1) << (7 - i % 8);
+            e[j][i / 8] ^= ((split[j] >> (i % l)) & 0x1) << (i % 8);
         }
     }
 }

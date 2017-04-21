@@ -101,9 +101,9 @@ const unsigned int B_n[] = { 16, 32, 30, 32, 30, 32, 30, 32, 30, 32, 30, 32, 30,
 const size_t NUMBER_OF_BLOCKS_K = ARRAY_SIZE(B_k);
 const size_t NUMBER_OF_BLOCKS_N = ARRAY_SIZE(B_n);
 const size_t NUMBER_OF_BLOCKS = ARRAY_SIZE(B_k);
-const size_t L = 4;
+const size_t L = 2;
 const size_t S = 2;
-const size_t N_ERROR_SPLITS = 40;
+const size_t N_ERROR_SPLITS = 2;
 const uint8_t VALID_ERROR_SPLITS[][2] = {{ 0x0, 0x1 }, { 0x0, 0x2 }, { 0x0, 0x3 }, { 0x0, 0x4 },
                                          { 0x0, 0x5 }, { 0x0, 0x6 }, { 0x0, 0x8 }, { 0x0, 0x9 },
                                          { 0x0, 0xA }, { 0x0, 0xc }, { 0x1, 0x0 }, { 0x2, 0x0 },
