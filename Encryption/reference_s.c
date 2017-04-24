@@ -27,29 +27,38 @@ void key_gen(size_t k,
 {
     
     uint8_t S[k][BYTES(k)]; 
-    uint8_t p[s][n][BYTES(n)]; printf("here...\n");
+    uint8_t p[s][n][BYTES(n)];
     uint8_t P[n][BYTES(n)];
     uint8_t SG[s][n][BYTES(k)];
     uint8_t g[s][n][BYTES(k)];
 
-    
+    printf("creating S matrix\n");
     create_S(k, S);
     invert(k, S, S_inv);
+    printf("created S matrix!\n");
 
+    printf("creating P matrix...\n");
     create_P(n, P);
+    printf("created P matrix\n");
+    printf("creating G matrix...\n");
     create_G(k, n, G);
+    printf("created G matrix!\n");
 
     // Compute G_1 ... G_s-1 
+    printf("creating Gs matrices...\n");
     memset(g, 0, s * n * BYTES(k));
     for (size_t i = 0; i < s-1; i++)
       random_matrix(k, n, g[i]);
+   
 
     // Compute G_s
     matrix_add(k, n, G, g[s-1], g[s-1]);
     for(size_t i = 0; i < s - 1; i++)
       matrix_add(k, n, g[i], g[s-1], g[s-1]);
+    printf("created Gs matrices!\n");
     
     // Compute public key Gi
+    printf("computing public key\n");
     memset(G_pub, 0, s* n * BYTES(k));
     memset(SG, 0, s * n * BYTES(k));
     for (size_t i = 0; i < s; i++) {
@@ -57,10 +66,13 @@ void key_gen(size_t k,
       create_Pi_from_P(n, P, p[i]);
       matrix_multiply(k, n, n, SG[i], p[i], G_pub[i]);
     }
+    printf("computed public key\n");
 
+    printf("computing private key\n");
     // Compute the inverse permutation
     for (size_t i = 0; i < s; i++)
       invert_permutation_matrix(n, p[i], P_inv[i]);
+    printf("computed private key\n");
 }
 
 
@@ -147,12 +159,7 @@ void decrypt(size_t k, size_t n, size_t s, uint8_t S_inv[k][BYTES(k)], uint8_t G
       vector_matrix_mult(n, n, z[i], P_inv[i], c_prime[i]);
       BytewiseOperation(xor, n, 0, n, c_prime[i], y, y);
   }
-   fprintf(fp_out_S, "c0 \n");
-  print_vector(fp_out_S, n, c_prime[0]);
-  fprintf(fp_out_S, "c1 \n");
-  print_vector(fp_out_S, n, c_prime[1]);
-  fprintf(fp_out_S, "y \n");
-  print_vector(fp_out_S, n, y);
+   
   decode(k, n, G, y, &L);
 
   for (size_t i = 0; i < L.size; i++) {
@@ -247,20 +254,21 @@ static bool valid_candidate(size_t k, size_t n, uint8_t G[n][BYTES(k)], uint8_t 
 	uint8_t cand_encoding[BYTES(n)];
     memset(cand_encoding, 0, sizeof(cand_encoding));
 	size_t block_start_column = k + sum(block, B_n);
-    uint8_t mask = 0xff >> (8-L);
 
-	for (size_t i = block_start_column; i < block_start_column + B_n[block]; i += L) {
-    
-        for (size_t j = 0; j < L; j++)
-            cand_encoding[(i+j) / 8] ^= (scalar_prod(k, n, i+j, cand, G) << (7 - (i+j) % 8));
+	for (size_t i = block_start_column; i < block_start_column + B_n[block]; i += 4) {
+		
+		cand_encoding[i / 8] ^= (scalar_prod(k, n, i, cand, G) << (7 - i % 8));
+		cand_encoding[(i+1) / 8] ^= (scalar_prod(k, n, i+1, cand, G) << (7 - (i+1) % 8));
+		cand_encoding[(i+2) / 8] ^= (scalar_prod(k, n, i+2, cand, G) << (7 - (i+2) % 8));
+		cand_encoding[(i+3) / 8] ^= (scalar_prod(k, n, i+3, cand, G) << (7 - (i+3) % 8));
 
-		uint8_t slice = ((cand_encoding[i / 8] ^ y[i / 8]) >> (6 - i % 8)) & mask;
+		uint8_t slice = ((cand_encoding[i / 8] ^ y[i / 8]) >> (4 - i % 8)) & 0x0f;
 
-		if (slice == mask) {
+		if (slice == 0x7 || slice == 0xb || slice > 0xc) {
 			return false;
 		}
 	}
-
+	
 	return true;
 }
 
@@ -273,19 +281,51 @@ static void extend(List *next, size_t k, uint8_t y0[BYTES(k)], uint8_t cand[BYTE
 
 		memcpy(x, cand, sizeof(x));
 		size_t step_slice = sum(block, B_k) + step;
-		uint8_t y0_ki_mask = 0x3 << (6 - step_slice % 8);
+		uint8_t y0_ki_mask = 0x0f << (4 - step_slice % 8);
 
 		// e = 00
 		x[step_slice / 8] ^= (y0[step_slice / 8] & y0_ki_mask);
-		extend(next, k, y0, x, block, step + 2);
+		extend(next, k, y0, x, block, step + 4);
 
 		// e = 01
-		x[step_slice / 8] ^= (0x55 & y0_ki_mask);
-		extend(next, k, y0, x, block, step + 2);
+		x[step_slice / 8] ^= (0x11 & y0_ki_mask);
+		extend(next, k, y0, x, block, step + 4);
 
 		// e = 10
-		x[step_slice / 8] ^= (0xff & y0_ki_mask);
-		extend(next, k, y0, x, block, step + 2);
+		x[step_slice / 8] ^= (0x22 & y0_ki_mask);
+		extend(next, k, y0, x, block, step + 4);
+
+		// e = 11
+		x[step_slice / 8] ^= (0x33 & y0_ki_mask);
+		extend(next, k, y0, x, block, step + 4);
+
+		// e = 100
+		x[step_slice / 8] ^= (0x44 & y0_ki_mask);
+		extend(next, k, y0, x, block, step + 4);
+
+		// e = 101
+		x[step_slice / 8] ^= (0x55 & y0_ki_mask);
+		extend(next, k, y0, x, block, step + 4);
+
+		// e = 110
+		x[step_slice / 8] ^= (0x66 & y0_ki_mask);
+		extend(next, k, y0, x, block, step + 4);
+
+		// e = 1000
+		x[step_slice / 8] ^= (0x88 & y0_ki_mask);
+		extend(next, k, y0, x, block, step + 4);
+
+		// e = 1001
+		x[step_slice / 8] ^= (0x99 & y0_ki_mask);
+		extend(next, k, y0, x, block, step + 4);
+
+		// e = 1010
+		x[step_slice / 8] ^= (0xAA & y0_ki_mask);
+		extend(next, k, y0, x, block, step + 4);
+
+		// e = 1011
+		x[step_slice / 8] ^= (0xcc & y0_ki_mask);
+		extend(next, k, y0, x, block, step + 4);
 	} else {
 		list_append(next, k, cand);
 	}

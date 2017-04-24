@@ -277,18 +277,42 @@ void random_permutation(size_t k, unsigned int a[k])
 
 void all_errors(List *v, size_t d, size_t k, uint8_t e_[BYTES(k)])
 {
-	assert(d % 2 == 0);
+	assert(d % 4 == 0);
 	uint8_t e[BYTES(k)];
     memset(e, 0, sizeof(e));
 	memcpy(e, e_, sizeof(e));
 	if (d > 0) {	
-        d -= 2;		
+        d -= 4;		
 		all_errors(v, d, k, e);
 		
-		e[d / 8] = e_[d / 8] ^ (0x01 << (6 - d % 8));
+		e[d / 8] = e_[d / 8] ^ (0x01 << (4 - d % 8));
 		all_errors(v, d, k, e);
 		
-		e[d / 8] = e_[d / 8] ^ (0x02 << (6 - d % 8));
+		e[d / 8] = e_[d / 8] ^ (0x02 << (4 - d % 8));
+		all_errors(v, d, k, e);
+
+		e[d / 8] = e_[d / 8] ^ (0x04 << (4 - d % 8));
+		all_errors(v, d, k, e);
+
+		e[d / 8] = e_[d / 8] ^ (0x08 << (4 - d % 8));
+		all_errors(v, d, k, e);
+
+		e[d / 8] = e_[d / 8] ^ (0x03 << (4 - d % 8));
+		all_errors(v, d, k, e);
+
+		e[d / 8] = e_[d / 8] ^ (0x06 << (4 - d % 8));
+		all_errors(v, d, k, e);
+
+		e[d / 8] = e_[d / 8] ^ (0x05 << (4 - d % 8));
+		all_errors(v, d, k, e);
+
+		e[d / 8] = e_[d / 8] ^ (0x0A << (4 - d % 8));
+		all_errors(v, d, k, e);
+
+		e[d / 8] = e_[d / 8] ^ (0x09 << (4 - d % 8));
+		all_errors(v, d, k, e);
+
+		e[d / 8] = e_[d / 8] ^ (0x0c << (4 - d % 8));
 		all_errors(v, d, k, e);
 	} else {
 		list_append(v, k, e);	

@@ -83,14 +83,9 @@ size_t test_scheme()
   // Decryption: z + e |- P^-1 -> y + e' |- Decode -> {x1, x2, ...} |- S^-1 -> m
   decrypt(k, n, S, S_inv, G, P_inv, z, &decrypt_list);
   
-  printf("decrypt %u", decrypt_list.size);
-
   printf("\n");
-  FILE *fp_out_v     = fopen("V.txt", "w");
   for (size_t i = 0; i < decrypt_list.size; i++) {
     uint8_t (*mp)[BYTES(k)] = list_get(&decrypt_list, i);
-    fprintf(fp_out_v, "mp%zu \n", i);
-    print_vector(fp_out_v, k, *mp);
     if (equals(k, m, *mp)) {
       printf("Message successfully decrypted!\n");
     }
