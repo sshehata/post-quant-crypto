@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <time.h>
 #include <stdlib.h>
+#include <sys/resource.h>
 #include "print_utils.h"
 #include "reference_s.h"
 
@@ -11,6 +12,25 @@ size_t test_scheme();
 
 int main(int argc, char *argv[]) {
   assert(NUMBER_OF_BLOCKS_K == NUMBER_OF_BLOCKS_N);
+
+  const rlim_t kStackSize = 1024 * 1024 * 1024;   // min stack size = 16 MB
+  struct rlimit rl;
+  int result;
+
+  result = getrlimit(RLIMIT_STACK, &rl);
+  if (result == 0)
+  {
+    if (rl.rlim_cur < kStackSize)
+    {
+      rl.rlim_cur = kStackSize;
+      result = setrlimit(RLIMIT_STACK, &rl);
+      if (result != 0)
+      {
+        fprintf(stderr, "setrlimit returned result = %d\n", result);
+      }
+    }
+  }
+
 
   srand(time(NULL));
   print_parameters();
