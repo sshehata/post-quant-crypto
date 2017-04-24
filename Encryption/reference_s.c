@@ -140,19 +140,12 @@ void decrypt(size_t k, size_t n, size_t s, uint8_t S_inv[k][BYTES(k)], uint8_t G
 
   memset(c_prime, 0, s*BYTES(n));
   memset(y, 0, BYTES(n));
-  FILE *fp_out_S    = fopen("S.txt", "w");
-  
   
   for (size_t i = 0; i < s; i++) {
       vector_matrix_mult(n, n, z[i], P_inv[i], c_prime[i]);
       BytewiseOperation(xor, n, 0, n, c_prime[i], y, y);
   }
-   fprintf(fp_out_S, "c0 \n");
-  print_vector(fp_out_S, n, c_prime[0]);
-  fprintf(fp_out_S, "c1 \n");
-  print_vector(fp_out_S, n, c_prime[1]);
-  fprintf(fp_out_S, "y \n");
-  print_vector(fp_out_S, n, y);
+  
   decode(k, n, G, y, &L);
 
   for (size_t i = 0; i < L.size; i++) {
