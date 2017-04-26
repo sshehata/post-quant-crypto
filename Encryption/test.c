@@ -73,23 +73,18 @@ size_t test_scheme()
   list_init(&decrypt_list, k);
   
  
-  random_vector(k, m);
-  random_error_split(S, L, n, e);
-  
-  
-  // Encryption: m |- S -> x |- G -> y |- P -> z -> z + e
-  encrypt(k, n, S, G_pub, m, e, z);
-
-  // Decryption: z + e |- P^-1 -> y + e' |- Decode -> {x1, x2, ...} |- S^-1 -> m
-  decrypt(k, n, S, S_inv, G, P_inv, z, &decrypt_list);
-  
-  printf("\n");
-  for (size_t i = 0; i < decrypt_list.size; i++) {
-    uint8_t (*mp)[BYTES(k)] = list_get(&decrypt_list, i);
-    if (equals(k, m, *mp)) {
-      printf("Message successfully decrypted!\n");
-    }
+  for (size_t i = 0; i < S; i++) {
+    random_vector(n, z[i]);
   }
+  uint8_t sig[BYTES(k)];
+  memset(sig, 0, sizeof(sig));
+
+
+  if (sign(k, n, S, S_inv, G, P_inv, z, sig) > 0 && verify(k, n, S, G_pub, z, sig)) {
+    printf("Signature found!\n");
+  } else {
+    printf("No signature found.\n");
+  }	
 
   list_free(&decrypt_list);
 

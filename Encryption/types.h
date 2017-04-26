@@ -8,6 +8,8 @@
 #define ARRAY_SIZE(x) ((sizeof (x)) / (sizeof (x)[0]))
 #define BYTES(x) (((size_t) ceil((x) / 8)) + 1)
 
+#define SIG
+
 #ifdef SIG
 	#define ENCRYPTION false
 	#define SIGNATURE true

@@ -152,11 +152,10 @@ void random_error_split(size_t s,
 void random_error(size_t start, size_t len, uint8_t e[BYTES(len)])
 {
 	memset(e, 0, BYTES(len));
+    uint8_t errors[10] = { 0x2, 0x3, 0x4, 0x5, 0x6, 0x8, 0x9, 0xa, 0xc };
 	for (size_t i = start / 8; i < BYTES(len); i++) {
-		e[i] = randr(0, 2);
-		e[i] ^= randr(0, 2) << 2;
-		e[i] ^= randr(0, 2) << 4;
-		e[i] ^= randr(0, 2) << 6;
+		e[i] = errors[randr(0, 9)];
+		e[i] ^= errors[randr(0, 9)] << 4;
 	}
     e[start / 8] &= (MSB_mask(start) ^ 0xff);
     e[BYTES(len) - 1] &= MSB_mask(len);

@@ -12,4 +12,5 @@ extern const size_t L;
 extern const size_t S;
 extern const size_t N_ERROR_SPLITS;
 extern const uint8_t VALID_ERROR_SPLITS[][2];
+
 #endif

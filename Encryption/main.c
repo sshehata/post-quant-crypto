@@ -58,18 +58,18 @@ size_t test_scheme()
   random_vector(k, m);
   random_error(0, n, e);
 
-  encrypt(k, n, G_pub, m, e, z);
+  //encrypt(k, n, G_pub, m, e, z);
 
-  // Decryption: z + e |- P^-1 -> y + e' |- Decode -> {x1, x2, ...} |- S^-1 -> m
-  decrypt(k, n, S_inv, G, inv_perm, z, &decrypt_list);
+  //// Decryption: z + e |- P^-1 -> y + e' |- Decode -> {x1, x2, ...} |- S^-1 -> m
+  //decrypt(k, n, S_inv, G, inv_perm, z, &decrypt_list);
 
-  printf("\n");
-  for (size_t i = 0; i < decrypt_list.size; i++) {
-    uint8_t (*mp)[BYTES(k)] = list_get(&decrypt_list, i);
-    if (equals(k, m, *mp)) {
-      printf("Message successfully decrypted!\n");
-    }
-  }
+  //printf("\n");
+  //for (size_t i = 0; i < decrypt_list.size; i++) {
+  //  uint8_t (*mp)[BYTES(k)] = list_get(&decrypt_list, i);
+  //  if (equals(k, m, *mp)) {
+  //    printf("Message successfully decrypted!\n");
+  //  }
+  //}
 
   list_free(&decrypt_list);
 

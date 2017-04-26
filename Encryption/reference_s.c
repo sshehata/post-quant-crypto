@@ -62,7 +62,7 @@ void key_gen(size_t k,
     memset(G_pub, 0, s* n * BYTES(k));
     memset(SG, 0, s * n * BYTES(k));
     for (size_t i = 0; i < s; i++) {
-      matrix_multiply(k, k, n, S, g[i], SG[i]);
+      matrix_multiply(k, k, n, S, G, SG[i]);
       create_Pi_from_P(n, P, p[i]);
       matrix_multiply(k, n, n, SG[i], p[i], G_pub[i]);
     }
@@ -349,48 +349,27 @@ static size_t exp_limit(size_t ni)
 }
 
 
-unsigned int sign(size_t k, size_t n,
+unsigned int sign(size_t k, size_t n, size_t s,
     uint8_t S_inv[k][BYTES(k)],
     uint8_t G[n][BYTES(k)],
-    unsigned int inv_perm[n / 2],
-    uint8_t z[BYTES(n)],
+    uint8_t P_inv[s][n][BYTES(n)],
+    uint8_t z[s][BYTES(n)],
     uint8_t signature[BYTES(k)])
 {
-    uint8_t x[BYTES(k)], y[BYTES(n)];
-    memset(x, 0, sizeof(x));
-    memset(y, 0, sizeof(y));
+  uint8_t x[BYTES(k)], y[s][BYTES(n)];
+  uint8_t Y[BYTES(n)];
+  memset(Y, 0, BYTES(n));
+  memset(x, 0, BYTES(k));
+  memset(y, 0, s * BYTES(n));
+  for (size_t i = 0; i < s; i++) {
+    vector_matrix_mult(n, n, z[i], P_inv[i], y[i]);
+    BytewiseOperation(xor, n, 0, n, y[i], Y, Y);
+  }
 
-	uint8_t ztemp[n], ytemp[n];
+  sign_decode(k, n, G, Y, x);
+  vector_matrix_mult(k, k, x, S_inv, signature);
 
-	// inverse permute z to obtain y
-	size_t j = 0;
-	for (size_t i = 0; i < BYTES(n); i++) {
-        ztemp[j++] = get_bit(z[i], 0);
-        ztemp[j++] = get_bit(z[i], 1);
-        ztemp[j++] = get_bit(z[i], 2);
-        ztemp[j++] = get_bit(z[i], 3);
-        ztemp[j++] = get_bit(z[i], 4);
-        ztemp[j++] = get_bit(z[i], 5);
-        ztemp[j++] = get_bit(z[i], 6);
-        ztemp[j++] = get_bit(z[i], 7);
-    }
-
-    for (size_t i = 0; i < n / 2; i++) {
-        ytemp[2 * i] = ztemp[2 * inv_perm[i]];
-        ytemp[2 * i + 1] = ztemp[2 * inv_perm[i] + 1];
-    }
-
-	for (size_t i = 0; i < BYTES(n); i++) {
-        y[i] = (ytemp[8*i])<<7     | (ytemp[8*i + 1])<<6 \
-			 | (ytemp[8*i + 2])<<5 | (ytemp[8*i + 3])<<4 \
-			 | (ytemp[8*i + 4])<<3 | (ytemp[8*i + 5])<<2 \
-			 | (ytemp[8*i + 6])<<1 | (ytemp[8*i + 7]);
-    }
-
-	sign_decode(k, n, G, y, x);
-    vector_matrix_mult(k, k, x, S_inv, signature);
-
-    return 1;
+  return 1;
 }
 
 static void sign_decode(size_t k, size_t n, uint8_t G[n][BYTES(k)], uint8_t y[BYTES(n)], uint8_t x[BYTES(k)])
@@ -407,7 +386,7 @@ static void sign_decode(size_t k, size_t n, uint8_t G[n][BYTES(k)], uint8_t y[BY
     while (!valid_cand) {
 		size_t Ki = B_k[0];
         memset(x, 0, BYTES(k));
-        //random_error(0, Ki, e0);
+        random_error(0, Ki, e0);
         BytewiseOperation(xor, k, 0, Ki, y0, e0, x);
 
         if (valid_candidate(k, n, G, y, x, 0)) {
@@ -463,22 +442,40 @@ static void expand(size_t k, size_t Ki, size_t ki, size_t ni, List *L, uint8_t y
     }
 }
 
-bool verify(size_t k, size_t n, uint8_t G_pub[n][BYTES(k)], uint8_t z[BYTES(n)], uint8_t sig[BYTES(k)])
-{
-	uint8_t y[BYTES(n)];
-    memset(y, 0, sizeof(y));
-	vector_matrix_mult(k, n, sig, G_pub, y);
-	BytewiseOperation(xor, n, 0, n, y, z, y);
-	for (size_t i = 0; i < n; i += 2) {
-		uint8_t slice = (y[i / 8] >> (6 - i % 8)) & 0x3;
-		if (slice == 0x3) {
-            printf("Problem at i = %zd\n", i);
-            print_vector(stdout, i + 2, y);
-
-			return false;
-		}
-	}
-
-	return true;
+bool find_split(size_t s, uint8_t errors[s]) {
+    for (size_t i = 0; i < N_ERROR_SPLITS; i++) {
+        if (VALID_ERROR_SPLITS[i][0] == errors[0] &&
+            VALID_ERROR_SPLITS[i][1] == errors[1])
+                return true;
+    }
+    return false;
 }
 
+bool verify(size_t k,
+    size_t n,
+    size_t s,
+    uint8_t G_pub[s][n][BYTES(k)],
+    uint8_t z[s][BYTES(n)],
+    uint8_t sig[BYTES(k)])
+{
+  uint8_t y[s][BYTES(n)];
+  memset(y, 0, s * BYTES(n));
+  for (size_t i = 0; i < s; i++) {
+    vector_matrix_mult(k, n, sig, G_pub[i], y[i]);
+    BytewiseOperation(xor, n, 0, n, y[i], z[i], y[i]);
+  }
+  
+  print_vector(stdout, n, y[0]);
+  print_vector(stdout, n, y[1]);
+
+  uint8_t errors[2];
+  for (size_t i = 0; i < n; i+=4) {
+    errors[0] = (y[0][i/8] >> (4 - i % 8)) & 0xf;
+    errors[1] = (y[1][i/8] >> (4 - i % 8)) & 0xf;
+    printf("%zu %zu\n", y[0][i/8], y[1][i/8]);
+    if (!find_split(s, errors))
+        return false;
+  }
+
+  return true;
+}
