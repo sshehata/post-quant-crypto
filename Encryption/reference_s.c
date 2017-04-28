@@ -152,8 +152,6 @@ void decrypt(size_t k, size_t n, size_t s, uint8_t S_inv[k][BYTES(k)], uint8_t G
 
   memset(c_prime, 0, s*BYTES(n));
   memset(y, 0, BYTES(n));
-  FILE *fp_out_S    = fopen("S.txt", "w");
-  
   
   for (size_t i = 0; i < s; i++) {
       vector_matrix_mult(n, n, z[i], P_inv[i], c_prime[i]);
@@ -229,7 +227,7 @@ static unsigned int list_decode(size_t k, size_t n,
   return Lp->size;
 }
 
-static void create_first_block_candidates(List *T0, size_t k, size_t n, 
+static void create_first_block_candidates(List *T0, size_t k, size_t n,
     uint8_t G[n][BYTES(k)], uint8_t y[BYTES(n)], uint8_t y0[BYTES(k)])
 {
 	List E_K0;
@@ -262,9 +260,9 @@ static bool valid_candidate(size_t k, size_t n, uint8_t G[n][BYTES(k)], uint8_t 
 		cand_encoding[(i+2) / 8] ^= (scalar_prod(k, n, i+2, cand, G) << (7 - (i+2) % 8));
 		cand_encoding[(i+3) / 8] ^= (scalar_prod(k, n, i+3, cand, G) << (7 - (i+3) % 8));
 
-		uint8_t slice = ((cand_encoding[i / 8] ^ y[i / 8]) >> (4 - i % 8)) & 0x0f;
+		uint8_t slice = ((cand_encoding[i / 8] ^ y[i / 8]) >> (4 - i % 8)) & 0xf;
 
-		if (slice == 0x7 || slice == 0xb || slice > 0xc) {
+		if (slice == 0x0 || slice == 0x7 || slice == 0xb || slice > 0xc) {
 			return false;
 		}
 	}
@@ -283,48 +281,48 @@ static void extend(List *next, size_t k, uint8_t y0[BYTES(k)], uint8_t cand[BYTE
 		size_t step_slice = sum(block, B_k) + step;
 		uint8_t y0_ki_mask = 0x0f << (4 - step_slice % 8);
 
-		// e = 00
+		/*// e = 00
+		extend(next, k, y0, x, block, step + 4);*/
 		x[step_slice / 8] ^= (y0[step_slice / 8] & y0_ki_mask);
-		extend(next, k, y0, x, block, step + 4);
 
 		// e = 01
-		x[step_slice / 8] ^= (0x11 & y0_ki_mask);
+		x[step_slice / 8] ^=  (0x11 & y0_ki_mask);
 		extend(next, k, y0, x, block, step + 4);
 
 		// e = 10
-		x[step_slice / 8] ^= (0x22 & y0_ki_mask);
-		extend(next, k, y0, x, block, step + 4);
-
-		// e = 11
 		x[step_slice / 8] ^= (0x33 & y0_ki_mask);
 		extend(next, k, y0, x, block, step + 4);
 
+		// e = 11
+		x[step_slice / 8] ^= (0x11 & y0_ki_mask);
+		extend(next, k, y0, x, block, step + 4);
+
 		// e = 100
-		x[step_slice / 8] ^= (0x44 & y0_ki_mask);
+		x[step_slice / 8] ^= (0x77 & y0_ki_mask);
 		extend(next, k, y0, x, block, step + 4);
 
 		// e = 101
-		x[step_slice / 8] ^= (0x55 & y0_ki_mask);
+		x[step_slice / 8] ^= (0x11 & y0_ki_mask);
 		extend(next, k, y0, x, block, step + 4);
 
 		// e = 110
-		x[step_slice / 8] ^= (0x66 & y0_ki_mask);
+		x[step_slice / 8] ^= (0x33 & y0_ki_mask);
 		extend(next, k, y0, x, block, step + 4);
 
 		// e = 1000
-		x[step_slice / 8] ^= (0x88 & y0_ki_mask);
+		x[step_slice / 8] ^= (0xee & y0_ki_mask);
 		extend(next, k, y0, x, block, step + 4);
 
 		// e = 1001
-		x[step_slice / 8] ^= (0x99 & y0_ki_mask);
+		x[step_slice / 8] ^= (0x11 & y0_ki_mask);
 		extend(next, k, y0, x, block, step + 4);
 
 		// e = 1010
-		x[step_slice / 8] ^= (0xAA & y0_ki_mask);
+		x[step_slice / 8] ^= (0x33 & y0_ki_mask);
 		extend(next, k, y0, x, block, step + 4);
 
 		// e = 1011
-		x[step_slice / 8] ^= (0xcc & y0_ki_mask);
+		x[step_slice / 8] ^= (0x11 & y0_ki_mask);
 		extend(next, k, y0, x, block, step + 4);
 	} else {
 		list_append(next, k, cand);
@@ -366,7 +364,7 @@ unsigned int sign(size_t k, size_t n, size_t s,
     BytewiseOperation(xor, n, 0, n, y[i], Y, Y);
   }
 
-  sign_decode(k, n, G, Y, x);
+  sign_decode(k, n, G, y[0], x);
   vector_matrix_mult(k, k, x, S_inv, signature);
 
   return 1;
@@ -442,15 +440,6 @@ static void expand(size_t k, size_t Ki, size_t ki, size_t ni, List *L, uint8_t y
     }
 }
 
-bool find_split(size_t s, uint8_t errors[s]) {
-    for (size_t i = 0; i < N_ERROR_SPLITS; i++) {
-        if (VALID_ERROR_SPLITS[i][0] == errors[0] &&
-            VALID_ERROR_SPLITS[i][1] == errors[1])
-                return true;
-    }
-    return false;
-}
-
 bool verify(size_t k,
     size_t n,
     size_t s,
@@ -459,23 +448,23 @@ bool verify(size_t k,
     uint8_t sig[BYTES(k)])
 {
   uint8_t y[s][BYTES(n)];
+  uint8_t Y[BYTES(n)];
   memset(y, 0, s * BYTES(n));
+  memset(Y, 0, BYTES(n));
   for (size_t i = 0; i < s; i++) {
     vector_matrix_mult(k, n, sig, G_pub[i], y[i]);
     BytewiseOperation(xor, n, 0, n, y[i], z[i], y[i]);
+    BytewiseOperation(xor, n, 0, n, y[i], Y, Y);
   }
   
   print_vector(stdout, n, y[0]);
   print_vector(stdout, n, y[1]);
 
-  uint8_t errors[2];
   for (size_t i = 0; i < n; i+=4) {
-    errors[0] = (y[0][i/8] >> (4 - i % 8)) & 0xf;
-    errors[1] = (y[1][i/8] >> (4 - i % 8)) & 0xf;
-    printf("%zu %zu\n", y[0][i/8], y[1][i/8]);
-    if (!find_split(s, errors))
+    uint8_t slice = (y[0][i/8] >> (4 - i % 8)) & 0xf;
+    printf("%x \n", slice);
+    if (slice == 0x7 || slice == 0xb || slice > 0xc)
         return false;
   }
-
   return true;
 }

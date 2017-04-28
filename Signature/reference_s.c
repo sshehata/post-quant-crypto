@@ -114,7 +114,7 @@ void decrypt(size_t k, size_t n,
   decode(k, n, G, y, &L);
 
   for (size_t i = 0; i < L.size; i++) {
-    vector_matrix_mult(k, k, list_get(&L, i), S_inv, m); 
+    vector_matrix_mult(k, k, list_get(&L, i), S_inv, m);
     list_append(decrypted, k, m);
   }
 
